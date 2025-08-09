@@ -156,6 +156,7 @@ def split_nodes_link(old_nodes):
 
 # use decorator here
 def text_to_textnodes(text):
+    text = text.strip(" ")
     nodes = split_nodes_delimiter(
         [TextNode(text, TextType.TEXT)], "**", TextType.BOLD)
     nodes = split_nodes_delimiter(nodes, "`", TextType.CODE)
@@ -282,7 +283,7 @@ def markdown_to_html_node(markdown):
         elif block_type == BlockType.UNORDERED_LIST:
             nodes.append(block_to_ul_tag(block))
         elif block_type == BlockType.QUOTE:
-            nodes.append(block_to_qoute_block(block))
+            nodes.append(block_to_quote_tag(block))
         elif block_type == BlockType.PARAGRAPH:
             nodes.append(block_to_paragraph_tag(block))
 
@@ -324,33 +325,25 @@ def block_to_paragraph_tag(block):
 
 
 def block_to_quote_tag(block):
-    lines = block.split("\n")
-    paragraph_nodes = []
+    block = block.replace(">", "")
+    text = " ".join(block.split("\n")).strip()
 
-    for line in lines:
-        text = line[1:].strip()
+    nodes = text_to_textnodes(text)
+    children = []
 
-        if len(text) == 0:
-            continue
+    for node in nodes:
+        children.append(text_node_to_html_node(node))
 
-        nodes = text_to_textnodes(text)
-        children = []
+    quote = ParentNode(tag="blockquote", children=children)
 
-        for node in nodes:
-            children.append(text_node_to_html_node(node))
-
-        paragraph_nodes.append(ParentNode(tag="p", children=children))
-
-    quote_node = ParentNode(tag="blockquote", children=paragraph_nodes)
-    result_node = ParentNode(tag="div", children=[quote_node])
-
+    result_node = ParentNode(tag="div", children=[quote])
     return result_node
 
 
 def block_to_code_tag(block):
     block = block.strip()
     lines = block[3:len(block) - 3].strip().split("\n")
-    text = " ".join(lines)
+    text = " ".join(lines).strip()
 
     nodes = text_to_textnodes(text)
     children = []
@@ -408,3 +401,11 @@ def block_to_ol_tag(block):
     result_tag = ParentNode("div", children=[ol_tag])
 
     return result_tag
+
+
+def extract_title(markdown):
+    blocks = markdown.strip().split("\n\n")
+    for block in blocks:
+        if block.startswith("# "):
+            return block[2:].strip()
+    raise Exception("not found title")
