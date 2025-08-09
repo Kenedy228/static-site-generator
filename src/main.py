@@ -41,6 +41,7 @@ def generate_page(from_path, template_path, dest_path, base_path):
     title = extract_title(from_content)
 
     template_content = template_content.replace("{{ Title }}", title)
+    template_content = template_content.replace("{{ CSS }}", base_path + "index.css")
     template_content = template_content.replace(
         "{{ Content }}", content)
 
