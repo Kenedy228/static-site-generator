@@ -1,12 +1,9 @@
 from htmlnode import HTMLNode
+from textnode import TextNode, TextType
+from common import split_nodes_delimiter, split_nodes_link, split_nodes_image 
 
 
 def main():
-    child_node_1 = HTMLNode(tag="li", value="foo", props={"prop1": "val1"})
-    child_node_2 = HTMLNode(tag="li", value="bar", props={"prop2": "val2"})
+    print("hello")
 
-    node = HTMLNode(tag="ul", children=[child_node_1, child_node_2],
-                    props={"color": "red"})
-
-    print(node)
 main()
