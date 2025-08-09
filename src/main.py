@@ -1,11 +1,12 @@
 import shutil
 import os
+import sys
 
 from config import WORKING_DIR
 from common import markdown_to_html_node, extract_title
 
 
-def generate_page_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_page_recursive(dir_path_content, template_path, dest_dir_path, base_path):
     dirs = os.listdir(dir_path_content)
 
     print(f"current file in dir {dir_path_content}: {dirs}")
@@ -14,13 +15,16 @@ def generate_page_recursive(dir_path_content, template_path, dest_dir_path):
         if os.path.isfile(os.path.join(dir_path_content, f)):
             if f.endswith(".md"):
                 html_file_name = f[0:len(f) - 3] + ".html"
-                generate_page(os.path.join(dir_path_content, f), template_path, os.path.join(dest_dir_path, html_file_name))
+                generate_page(os.path.join(dir_path_content, f), template_path, os.path.join(
+                    dest_dir_path, html_file_name), base_path)
         if os.path.isdir(os.path.join(dir_path_content, f)):
-            generate_page_recursive(os.path.join(dir_path_content, f), template_path, os.path.join(dest_dir_path, f))
+            generate_page_recursive(os.path.join(
+                dir_path_content, f), template_path, os.path.join(dest_dir_path, f), base_path)
 
 
-def generate_page(from_path, template_path, dest_path):
-    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
+def generate_page(from_path, template_path, dest_path, base_path):
+    print(f"Generating page from {from_path} to {
+          dest_path} using {template_path}")
     from_content = None
     template_content = None
 
@@ -30,14 +34,19 @@ def generate_page(from_path, template_path, dest_path):
     with open(template_path) as f:
         template_content = f.read()
 
-    content = markdown_to_html_node(from_content)
+    html = markdown_to_html_node(from_content)
+    content = html.to_html()
+    content = content.replace("href=\"/", f"href=\"{base_path}")
+    content = content.replace("src=\"/", f"src=\"{base_path}")
     title = extract_title(from_content)
 
     template_content = template_content.replace("{{ Title }}", title)
-    template_content = template_content.replace("{{ Content }}", content.to_html())
+    template_content = template_content.replace(
+        "{{ Content }}", content)
 
     if not os.path.exists(dest_path):
-        os.makedirs(dest_path.replace(os.path.basename(dest_path), ""), exist_ok=True)
+        os.makedirs(dest_path.replace(
+            os.path.basename(dest_path), ""), exist_ok=True)
 
     with open(dest_path, mode="w") as f:
         f.write(template_content)
@@ -49,18 +58,28 @@ def handle_delete_error():
 
 
 def main():
-    abs_path = os.path.abspath(WORKING_DIR)
-    dist = os.path.join(abs_path, "public")
-    src = os.path.join(abs_path, "static")
+    base_path = None
+
+    if len(sys.argv) == 2:
+        base_path = sys.argv[1]
+    else:
+        base_path = "/"
+
+    dist = os.path.join(WORKING_DIR, "docs")
+    src = os.path.join(WORKING_DIR, "static")
+
+    print(f"dist is {dist}")
+    print(f"src is {src}")
 
     if not os.path.exists(src):
         print("cannot find static directory")
-        os.exit(1)
+        sys.exit(1)
 
     if os.path.exists(dist):
         print(f"found path: {dist}")
         print(f"started to delete contents of {dist}")
-        shutil.rmtree(path=dist, ignore_errors=False, onerror=handle_delete_error)
+        shutil.rmtree(path=dist, ignore_errors=False,
+                      onerror=handle_delete_error)
 
     print(f"making empty dir: {dist}")
     os.mkdir(dist)
@@ -68,11 +87,12 @@ def main():
     shutil.copytree(src, dist, dirs_exist_ok=True)
     print("finished copying contents")
 
-    content_path_dir = os.path.join(abs_path, "content/")
-    template_path = os.path.join(abs_path, "template.html")
-    output_path_dir = os.path.join(abs_path, "public/")
+    content_path_dir = os.path.join(WORKING_DIR, "content/")
+    template_path = os.path.join(WORKING_DIR, "template.html")
+    output_path_dir = os.path.join(WORKING_DIR, "docs/")
 
-    generate_page_recursive(content_path_dir, template_path, output_path_dir)
+    generate_page_recursive(content_path_dir, template_path, output_path_dir, base_path)
+
 
 if __name__ == "__main__":
     main()
